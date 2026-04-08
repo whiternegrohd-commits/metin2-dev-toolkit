@@ -11,7 +11,11 @@
     "electron": "electron .",
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-pack": "electron-builder",
-    "preelectron-pack": "npm run build"
+    "preelectron-pack": "npm run build",
+    "release": "npm run electron-pack && gh release create v%npm_package_version% dist/*.exe dist/*.blockmap dist/latest.yml --title \"Metin2 Dev Toolkit v%npm_package_version%\" --notes \"Yeni versiyon yayınlandı!\"",
+    "version-patch": "npm version patch && npm run release",
+    "version-minor": "npm version minor && npm run release",
+    "version-major": "npm version major && npm run release"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -38,6 +42,23 @@
     "autoprefixer": "^10.4.14",
     "postcss": "^8.4.24"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/whiternegrohd-commits/metin2-dev-toolkit.git"
+  },
+  "keywords": [
+    "metin2",
+    "private-server",
+    "development",
+    "toolkit",
+    "electron",
+    "react"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/GITHUB_USERNAME/metin2-dev-toolkit/issues"
+  },
+  "homepage": "https://github.com/GITHUB_USERNAME/metin2-dev-toolkit#readme",
   "build": {
     "appId": "com.metin2.devtoolkit",
     "productName": "Metin2 Dev Toolkit",
@@ -62,8 +83,8 @@
     },
     "publish": {
       "provider": "github",
-      "owner": "metin2-dev",
-      "repo": "toolkit",
+      "owner": "whiternegrohd-commits",
+      "repo": "metin2-dev-toolkit",
       "private": false
     }
   },
