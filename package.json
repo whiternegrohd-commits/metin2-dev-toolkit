@@ -1,0 +1,82 @@
+{
+  "name": "metin2-dev-toolkit",
+  "version": "1.1.0",
+  "description": "Metin2 Private Server Development Toolkit - All-in-one desktop management panel",
+  "author": "Metin2 Dev Team",
+  "main": "public/electron.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-pack": "electron-builder",
+    "preelectron-pack": "npm run build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.0",
+    "mysql2": "^3.1.0",
+    "fs-extra": "^11.1.0",
+    "chokidar": "^3.5.3",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "lucide-react": "^0.263.1",
+    "clsx": "^1.2.1",
+    "tailwind-merge": "^1.14.0"
+  },
+  "devDependencies": {
+    "react-scripts": "5.0.1",
+    "concurrently": "^7.6.0",
+    "wait-on": "^7.0.1",
+    "electron": "^22.0.0",
+    "electron-builder": "^24.0.0",
+    "electron-is-dev": "^2.0.0",
+    "electron-updater": "^6.1.4",
+    "tailwindcss": "^3.3.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24"
+  },
+  "build": {
+    "appId": "com.metin2.devtoolkit",
+    "productName": "Metin2 Dev Toolkit",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "public/electron.js",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico",
+      "publisherName": "Metin2 Dev Team"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "metin2-dev",
+      "repo": "toolkit",
+      "private": false
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
