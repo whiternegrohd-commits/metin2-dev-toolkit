@@ -1,33 +1,23 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  Home, 
-  ShoppingCart, 
-  FileText, 
-  Scroll, 
-  Map, 
-  Palette, 
-  Activity,
-  ChevronLeft,
-  ChevronRight,
-  Settings
-} from 'lucide-react';
-
-const menuItems = [
-  { path: '/', icon: Home, label: 'Dashboard', color: 'cyber-green' },
-  { path: '/shop-manager', icon: ShoppingCart, label: 'Shop Manager', color: 'vivid-blue' },
-  { path: '/proto-editor', icon: FileText, label: 'Proto Editor', color: 'cyber-green' },
-  { path: '/quest-generator', icon: Scroll, label: 'Quest Generator', color: 'vivid-blue' },
-  { path: '/map-tool', icon: Map, label: 'Map Tool', color: 'cyber-green' },
-  { path: '/ui-tools', icon: Palette, label: 'UI Tools', color: 'vivid-blue' },
-  { path: '/log-analyzer', icon: Activity, label: 'Log Analyzer', color: 'warning' }
-];
+import { Home, ShoppingCart, FileText, Scroll, Map, Palette, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 function Sidebar({ collapsed, onToggle }) {
+  const { t } = useLanguage();
+
+  const menuItems = [
+    { path: '/', icon: Home, labelKey: 'dashboard' },
+    { path: '/shop-manager', icon: ShoppingCart, labelKey: 'shop_manager' },
+    { path: '/proto-editor', icon: FileText, labelKey: 'proto_editor' },
+    { path: '/quest-generator', icon: Scroll, labelKey: 'quest_generator' },
+    { path: '/map-tool', icon: Map, labelKey: 'map_tool' },
+    { path: '/ui-tools', icon: Palette, labelKey: 'ui_tools' },
+    { path: '/log-analyzer', icon: Activity, labelKey: 'log_analyzer' }
+  ];
+
   return (
-    <div className={`bg-dark-surface border-r border-dark-border transition-all duration-300 ${
-      collapsed ? 'w-16' : 'w-64'
-    }`}>
+    <div className={`bg-dark-surface border-r border-dark-border transition-all duration-300 flex flex-col ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-dark-border">
         {!collapsed && (
@@ -41,67 +31,32 @@ function Sidebar({ collapsed, onToggle }) {
             </div>
           </div>
         )}
-        
-        <button
-          onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-dark-hover transition-colors"
-        >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4 text-text-secondary" />
-          ) : (
-            <ChevronLeft className="w-4 h-4 text-text-secondary" />
-          )}
+        <button onClick={onToggle} className="p-2 rounded-lg hover:bg-dark-hover transition-colors">
+          {collapsed ? <ChevronRight className="w-4 h-4 text-text-secondary" /> : <ChevronLeft className="w-4 h-4 text-text-secondary" />}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="p-2 space-y-1">
+      <nav className="p-2 space-y-1 flex-1">
         {menuItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
+          <NavLink key={item.path} to={item.path}
             className={({ isActive }) =>
               `flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
                 isActive
                   ? 'bg-dark-hover border border-cyber-green/30 text-cyber-green'
                   : 'text-text-secondary hover:text-text-primary hover:bg-dark-hover'
               }`
-            }
-          >
+            }>
             {({ isActive }) => (
               <>
-                <item.icon 
-                  className={`w-5 h-5 transition-colors ${
-                    isActive ? 'text-cyber-green' : 'text-text-secondary group-hover:text-text-primary'
-                  }`} 
-                />
-                {!collapsed && (
-                  <span className="font-medium text-sm">{item.label}</span>
-                )}
-                {isActive && !collapsed && (
-                  <div className="ml-auto w-2 h-2 bg-cyber-green rounded-full animate-pulse" />
-                )}
+                <item.icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-cyber-green' : 'text-text-secondary group-hover:text-text-primary'}`} />
+                {!collapsed && <span className="font-medium text-sm">{t(item.labelKey)}</span>}
+                {isActive && !collapsed && <div className="ml-auto w-2 h-2 bg-cyber-green rounded-full animate-pulse" />}
               </>
             )}
           </NavLink>
         ))}
       </nav>
-
-      {/* Bottom Section */}
-      {!collapsed && (
-        <div className="absolute bottom-4 left-4 right-4">
-          <div className="bg-dark-hover rounded-lg p-3 border border-dark-border">
-            <div className="flex items-center space-x-2 mb-2">
-              <div className="w-2 h-2 bg-cyber-green rounded-full animate-pulse" />
-              <span className="text-xs text-text-secondary">Server Status</span>
-            </div>
-            <div className="text-xs text-text-muted">
-              <div>Game: Online</div>
-              <div>DB: Connected</div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

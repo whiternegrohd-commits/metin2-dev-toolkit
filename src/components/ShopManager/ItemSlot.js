@@ -3,14 +3,14 @@ import { useDrop } from 'react-dnd';
 import { X, Coins } from 'lucide-react';
 
 function ItemSlot({ slot, item, onRemove }) {
-  const [{ isOver, canDrop }, drop] = useDrop({
+  const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: 'item',
     drop: () => ({ slot }),
     collect: (monitor) => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop()
     })
-  });
+  }), [slot]);
 
   const getItemIcon = (vnum) => {
     // Mock item icon mapping - gerçek uygulamada item database'inden gelecek

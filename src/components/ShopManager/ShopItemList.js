@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import { Search, Filter, Package, Coins, Star } from 'lucide-react';
+import Database from '../../utils/database';
 
 // Draggable Item Component
 function DraggableItem({ item, onDrag }) {
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag] = useDrag(() => ({
     type: 'item',
     item: { ...item },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     }),
-    begin: () => onDrag(item)
-  });
+    end: () => onDrag(item)
+  }), [item, onDrag]);
 
   const getItemIcon = (type) => {
     const icons = {
@@ -84,76 +85,49 @@ function ShopItemList({ onItemDrag }) {
   const [filterType, setFilterType] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
 
-  // Mock item data - gerçek uygulamada database'den gelecek
+  // Database'den itemları yükle
   useEffect(() => {
-    const mockItems = [
-      {
-        vnum: 10,
-        name: 'Kılıç +0',
-        type: 'weapon',
-        rarity: 'common',
-        defaultPrice: 1000,
-        level: 1
-      },
-      {
-        vnum: 20,
-        name: 'Hançer +0',
-        type: 'weapon',
-        rarity: 'common',
-        defaultPrice: 800,
-        level: 1
-      },
-      {
-        vnum: 30,
-        name: 'Yay +0',
-        type: 'weapon',
-        rarity: 'uncommon',
-        defaultPrice: 1200,
-        level: 1
-      },
-      {
-        vnum: 11001,
-        name: 'Zırh +0',
-        type: 'armor',
-        rarity: 'common',
-        defaultPrice: 2000,
-        level: 1
-      },
-      {
-        vnum: 11002,
-        name: 'Gömlek +0',
-        type: 'armor',
-        rarity: 'common',
-        defaultPrice: 1500,
-        level: 1
-      },
-      {
-        vnum: 12001,
-        name: 'Güç Yüzüğü',
-        type: 'accessory',
-        rarity: 'rare',
-        defaultPrice: 5000,
-        level: 10
-      },
-      {
-        vnum: 27001,
-        name: 'Kırmızı İksir',
-        type: 'consumable',
-        rarity: 'common',
-        defaultPrice: 50,
-        level: 1
-      },
-      {
-        vnum: 50001,
-        name: 'Ejder Taşı',
-        type: 'etc',
-        rarity: 'legendary',
-        defaultPrice: 100000,
-        level: 50
+    loadItems();
+  }, [searchTerm, filterType, filterRarity]);
+
+  const loadItems = async () => {
+    try {
+      const result = await Database.getItems(searchTerm, filterType === 'all' ? '' : filterType);
+      if (result.success) {
+        const itemsData = result.data.map(item => ({
+          vnum: item.vnum,
+          name: item.name,
+          type: getItemTypeString(item.type),
+          rarity: getItemRarity(item.vnum),
+          defaultPrice: item.price,
+          level: 1
+        }));
+        setItems(itemsData);
       }
-    ];
-    setItems(mockItems);
-  }, []);
+    } catch (error) {
+      console.error('Error loading items:', error);
+    }
+  };
+
+  const getItemTypeString = (type) => {
+    const types = {
+      1: 'weapon',
+      2: 'armor', 
+      3: 'accessory',
+      4: 'consumable',
+      5: 'etc'
+    };
+    return types[type] || 'etc';
+  };
+
+  const getItemRarity = (vnum) => {
+    // Basit rarity hesaplama - gerçek uygulamada database'den gelecek
+    if (vnum >= 50000) return 'legendary';
+    if (vnum >= 30000) return 'epic';
+    if (vnum >= 20000) return 'rare';
+    if (vnum >= 10000) return 'uncommon';
+    return 'common';
+  };
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
