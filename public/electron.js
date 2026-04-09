@@ -508,6 +508,12 @@ ipcMain.handle('write-npclist', async (e, serverPath, npcs) => {
 function setupAutoUpdater() {
   if (!autoUpdater) return;
 
+  // GitHub yerine lokal dist klasöründen güncelleme yap
+  autoUpdater.setFeedURL({
+    provider: 'generic',
+    url: `file://${path.join(__dirname, '../dist')}/`
+  });
+
   autoUpdater.on('update-available', (info) => {
     console.log('[UPDATE] Yeni versiyon mevcut:', info.version);
     if (mainWindow) {
