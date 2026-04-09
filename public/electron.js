@@ -508,11 +508,15 @@ ipcMain.handle('write-npclist', async (e, serverPath, npcs) => {
 function setupAutoUpdater() {
   if (!autoUpdater) return;
 
-  // GitHub yerine lokal dist klasöründen güncelleme yap
+  // GitHub'dan güncelleme yap
   autoUpdater.setFeedURL({
-    provider: 'generic',
-    url: `file://${path.join(__dirname, '../dist')}/`
+    provider: 'github',
+    owner: 'whiternegrohd-commits',
+    repo: 'metin2-dev-toolkit',
+    releaseType: 'release'
   });
+
+  console.log('[UPDATE] GitHub feed URL ayarlandı');
 
   autoUpdater.on('update-available', (info) => {
     console.log('[UPDATE] Yeni versiyon mevcut:', info.version);
@@ -527,6 +531,9 @@ function setupAutoUpdater() {
 
   autoUpdater.on('update-not-available', () => {
     console.log('[UPDATE] Güncel versiyon kullanılıyor');
+    if (mainWindow) {
+      mainWindow.webContents.send('update-not-available');
+    }
   });
 
   autoUpdater.on('download-progress', (progress) => {
