@@ -1,6 +1,6 @@
 {
   "name": "metin2-dev-toolkit",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Metin2 Private Server Development Toolkit - All-in-one desktop management panel",
   "author": "Metin2 Dev Team",
   "main": "public/electron.js",
