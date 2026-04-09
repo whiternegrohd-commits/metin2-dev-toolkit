@@ -556,18 +556,32 @@ function setupAutoUpdater() {
 
 ipcMain.handle('check-for-updates', async () => {
   console.log('[UPDATE] Güncelleme kontrol başlatıldı...');
-  if (!isDev && autoUpdater) {
+  if (autoUpdater) {
     try {
+      console.log('[UPDATE] autoUpdater.checkForUpdates() çağrılıyor...');
       const result = await autoUpdater.checkForUpdates();
       console.log('[UPDATE] Kontrol sonucu:', result);
+      
+      // Event'leri manuel olarak tetikle (test için)
+      if (result && result.updateInfo) {
+        console.log('[UPDATE] Update info bulundu, event tetikleniyor');
+        if (mainWindow) {
+          mainWindow.webContents.send('update-available', {
+            version: result.updateInfo.version,
+            releaseDate: result.updateInfo.releaseDate,
+            releaseNotes: result.updateInfo.releaseNotes
+          });
+        }
+      }
+      
       return { success: true, result };
     } catch (err) {
       console.error('[UPDATE] Kontrol hatası:', err);
       return { success: false, error: err.message };
     }
   }
-  console.log('[UPDATE] Dev modunda güncelleme kontrol edilmiyor');
-  return { success: false, message: 'Dev modunda güncelleme yok' };
+  console.log('[UPDATE] autoUpdater mevcut değil');
+  return { success: false, message: 'autoUpdater yok' };
 });
 
 ipcMain.handle('install-update', () => {
