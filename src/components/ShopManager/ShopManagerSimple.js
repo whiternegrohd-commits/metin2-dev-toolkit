@@ -18,6 +18,9 @@ function ShopManagerSimple({ config }) {
   const [editCount, setEditCount] = useState(1);
   const [draggedItem, setDraggedItem] = useState(null);
 
+  // 🔥 HOT RELOAD TEST - Bu mesaj değiştirildi! (v2)
+  console.log('🚀 ShopManager yüklendi - Hot reload çalışıyor! ✅');
+
   useEffect(() => {
     if (config?.database) {
       Database.setConfig(config.database);

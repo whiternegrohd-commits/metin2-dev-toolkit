@@ -97,7 +97,7 @@ function UpdateNotification() {
           <div className="flex items-center space-x-2">
             <div className="w-2.5 h-2.5 bg-cyber-green rounded-full animate-pulse" />
             <span className="text-sm font-medium text-cyber-green">
-              Değişiklikler yüklendi
+              ✅ Değişiklikler yüklendi
             </span>
           </div>
           <span className="text-xs text-cyber-green/70 ml-2">

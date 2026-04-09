@@ -100,10 +100,10 @@ function Dashboard({ config }) {
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-cyber-green/10 to-vivid-blue/10 border border-cyber-green/20 rounded-xl p-6 mb-6">
         <h1 className="text-3xl font-bold text-text-primary mb-2">
-          🚀 Metin2 Dev Toolkit v1.2.0 - HOT RELOAD TEST
+          🚀 Metin2 Dev Toolkit - LIVE UPDATE TEST
         </h1>
         <p className="text-text-muted">
-          Bu mesaj değiştirildi! Güncelleme kontrol et butonuna tıkla ve yeni versiyonu indir.
+          ✅ Güncelleme sistemi çalışıyor! Yeni versiyon indir ve yeniden başlat.
         </p>
       </div>
       <div className="bg-gradient-to-r from-dark-surface to-dark-hover rounded-xl p-6 border border-dark-border">
