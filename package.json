@@ -1,6 +1,6 @@
 {
   "name": "metin2-dev-toolkit",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Metin2 Private Server Development Toolkit - All-in-one desktop management panel",
   "author": "Metin2 Dev Team",
   "main": "public/electron.js",
@@ -58,7 +58,6 @@
   "bugs": {
     "url": "https://github.com/whiternegrohd-commits/metin2-dev-toolkit/issues"
   },
-  "homepage": "./",
   "build": {
     "appId": "com.metin2.devtoolkit",
     "productName": "Metin2 Dev Toolkit",
