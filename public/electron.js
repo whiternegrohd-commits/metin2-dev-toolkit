@@ -554,11 +554,19 @@ function setupAutoUpdater() {
   });
 }
 
-ipcMain.handle('check-for-updates', () => {
+ipcMain.handle('check-for-updates', async () => {
+  console.log('[UPDATE] Güncelleme kontrol başlatıldı...');
   if (!isDev && autoUpdater) {
-    autoUpdater.checkForUpdatesAndNotify();
-    return { success: true };
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      console.log('[UPDATE] Kontrol sonucu:', result);
+      return { success: true, result };
+    } catch (err) {
+      console.error('[UPDATE] Kontrol hatası:', err);
+      return { success: false, error: err.message };
+    }
   }
+  console.log('[UPDATE] Dev modunda güncelleme kontrol edilmiyor');
   return { success: false, message: 'Dev modunda güncelleme yok' };
 });
 

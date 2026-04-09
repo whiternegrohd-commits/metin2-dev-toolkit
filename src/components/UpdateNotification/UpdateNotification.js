@@ -71,10 +71,11 @@ function UpdateNotification() {
     if (!ipcRenderer) return;
     
     try {
+      console.log('[UPDATE-NOTIFICATION] Güncelleme kontrol başlatıldı');
       const result = await ipcRenderer.invoke('check-for-updates');
-      console.log('Update check result:', result);
+      console.log('[UPDATE-NOTIFICATION] Kontrol sonucu:', result);
     } catch (error) {
-      console.error('Update check error:', error);
+      console.error('[UPDATE-NOTIFICATION] Kontrol hatası:', error);
     }
   };
 

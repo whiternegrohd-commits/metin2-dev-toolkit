@@ -42,7 +42,31 @@ function TopBar({ serverStatus, config, onConfigUpdate }) {
   const handleCheckUpdates = async () => {
     if (!ipcRenderer) return;
     setIsCheckingUpdates(true);
-    try { await ipcRenderer.invoke('check-for-updates'); } catch {}
+    try {
+      console.log('[TOPBAR] Güncelleme kontrol başlatıldı');
+      const result = await ipcRenderer.invoke('check-for-updates');
+      console.log('[TOPBAR] Kontrol sonucu:', result);
+      
+      // Başarılı ise bildirim ekle
+      if (result.success) {
+        setNotifications(prev => [...prev, {
+          id: Date.now(),
+          type: 'info',
+          title: 'Güncelleme Kontrol',
+          message: 'Yeni versiyon kontrol ediliyor...',
+          time: new Date().toLocaleTimeString()
+        }]);
+      }
+    } catch (err) {
+      console.error('[TOPBAR] Kontrol hatası:', err);
+      setNotifications(prev => [...prev, {
+        id: Date.now(),
+        type: 'error',
+        title: 'Hata',
+        message: 'Güncelleme kontrol edilemedi: ' + err.message,
+        time: new Date().toLocaleTimeString()
+      }]);
+    }
     setTimeout(() => setIsCheckingUpdates(false), 2000);
   };
 
@@ -147,8 +171,11 @@ function TopBar({ serverStatus, config, onConfigUpdate }) {
           {/* Sağ: Actions + Saat + Window Controls */}
           <div className="flex items-center space-x-2">
             <button onClick={handleCheckUpdates} disabled={isCheckingUpdates}
-              className="p-2 rounded-lg hover:bg-dark-hover transition-colors" title={t('check_updates')}>
-              <Download className={`w-4 h-4 text-text-secondary ${isCheckingUpdates ? 'animate-bounce' : ''}`} />
+              className="group relative p-2 rounded-lg hover:bg-dark-hover transition-all duration-300" title="Güncelleme Kontrol Et">
+              <Download className={`w-4 h-4 text-text-secondary group-hover:text-cyber-green transition-colors ${isCheckingUpdates ? 'animate-spin' : ''}`} />
+              {isCheckingUpdates && (
+                <span className="absolute inset-0 rounded-lg border border-cyber-green/30 animate-pulse" />
+              )}
             </button>
 
             {/* Notifications */}
