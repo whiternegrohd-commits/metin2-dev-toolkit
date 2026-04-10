@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, ShoppingCart, ChevronLeft, ChevronRight, Server, Users, BookOpen, Database } from 'lucide-react';
+import { Home, ShoppingCart, ChevronLeft, ChevronRight, Server, Users, BookOpen, Database, Map, Wand2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 function Sidebar({ collapsed, onToggle }) {
@@ -12,6 +12,8 @@ function Sidebar({ collapsed, onToggle }) {
     { path: '/server-manager', icon: Server, labelKey: 'server_manager' },
     { path: '/players', icon: Users, labelKey: 'players' },
     { path: '/quests', icon: BookOpen, labelKey: 'quests' },
+    { path: '/map-editor', icon: Map, labelKey: 'map_editor' },
+    { path: '/quest-generator', icon: Wand2, labelKey: 'quest_generator' },
     { path: '/query-builder', icon: Database, labelKey: 'query_builder' }
   ];
 

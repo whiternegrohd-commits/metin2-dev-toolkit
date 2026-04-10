@@ -507,6 +507,76 @@ ipcMain.handle('write-npclist', async (e, serverPath, npcs) => {
     return { success: true };
   } catch (err) { return { success: false, error: err.message }; }
 });
+// ─── Map Management ────────────────────────────────────────────────────────────
+ipcMain.handle('get-maps', async (e, config) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    const [rows] = await conn.execute(`
+      SELECT id, name, x, y, width, height, type, description
+      FROM map_info
+      ORDER BY id
+      LIMIT 500
+    `).catch(() => [[]]);
+    await conn.end();
+    return { success: true, data: rows };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('create-map', async (e, config, mapData) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute(`
+      INSERT INTO map_info (name, x, y, width, height, type, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      mapData.name,
+      mapData.x,
+      mapData.y,
+      mapData.width,
+      mapData.height,
+      mapData.type,
+      mapData.description
+    ]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('update-map', async (e, config, mapData) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute(`
+      UPDATE map_info
+      SET name = ?, x = ?, y = ?, width = ?, height = ?, type = ?, description = ?
+      WHERE id = ?
+    `, [
+      mapData.name,
+      mapData.x,
+      mapData.y,
+      mapData.width,
+      mapData.height,
+      mapData.type,
+      mapData.description,
+      mapData.id
+    ]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('delete-map', async (e, config, mapId) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute('DELETE FROM map_info WHERE id = ?', [mapId]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
 // ─── Server Management ─────────────────────────────────────────────────────────
 ipcMain.handle('start-server', async (e, config) => {
   // Placeholder - gerçek sunucu başlatma işlemi

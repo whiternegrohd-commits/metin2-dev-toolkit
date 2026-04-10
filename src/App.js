@@ -13,6 +13,8 @@ import ShopManager from './components/ShopManager/ShopManagerSimple';
 import ServerManager from './components/ServerManager/ServerManager';
 import PlayerList from './components/Players/PlayerList';
 import QuestEditor from './components/Quests/QuestEditor';
+import MapEditor from './components/MapEditor/MapEditor';
+import QuestGenerator from './components/QuestGenerator/QuestGenerator';
 import QueryBuilder from './components/QueryBuilder/QueryBuilder';
 
 import { AppProvider } from './context/AppContext';
@@ -141,6 +143,8 @@ function App() {
                             <Route path="/server-manager" element={<ServerManager config={appConfig} />} />
                             <Route path="/players" element={<PlayerList config={appConfig} />} />
                             <Route path="/quests" element={<QuestEditor config={appConfig} />} />
+                            <Route path="/map-editor" element={<MapEditor config={appConfig} />} />
+                            <Route path="/quest-generator" element={<QuestGenerator config={appConfig} />} />
                             <Route path="/query-builder" element={<QueryBuilder config={appConfig} />} />
                           </Routes>
                         </ErrorBoundary>
