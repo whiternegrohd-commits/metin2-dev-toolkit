@@ -74,16 +74,34 @@ function UpdateNotification() {
       console.log('[UPDATE-NOTIFICATION] Güncelleme kontrol başlatıldı');
       const result = await ipcRenderer.invoke('check-for-updates');
       console.log('[UPDATE-NOTIFICATION] Kontrol sonucu:', result);
+      
+      if (result.success && result.hasUpdate) {
+        setUpdateInfo(result.updateInfo);
+        setUpdateAvailable(true);
+      }
     } catch (error) {
       console.error('[UPDATE-NOTIFICATION] Kontrol hatası:', error);
     }
   };
 
-  const installUpdate = async () => {
-    if (!ipcRenderer) return;
+  const downloadUpdate = async () => {
+    if (!ipcRenderer || !updateInfo) return;
     
     try {
-      await ipcRenderer.invoke('install-update');
+      console.log('[UPDATE-NOTIFICATION] İndirme başlatıldı');
+      const result = await ipcRenderer.invoke('download-update', updateInfo);
+      console.log('[UPDATE-NOTIFICATION] İndirme sonucu:', result);
+    } catch (error) {
+      console.error('[UPDATE-NOTIFICATION] İndirme hatası:', error);
+    }
+  };
+
+  const installUpdate = async () => {
+    if (!ipcRenderer || !updateInfo) return;
+    
+    try {
+      // Electron main process'e dosya yolunu gönder
+      await ipcRenderer.invoke('install-update', updateInfo);
     } catch (error) {
       console.error('Install update error:', error);
     }
@@ -152,6 +170,15 @@ function UpdateNotification() {
 
   // Download progress
   if (downloadProgress) {
+    const speedMBps = (downloadProgress.bytesPerSecond / 1024 / 1024).toFixed(2);
+    const remainingBytes = downloadProgress.total - downloadProgress.transferred;
+    const remainingSeconds = downloadProgress.bytesPerSecond > 0 
+      ? Math.ceil(remainingBytes / downloadProgress.bytesPerSecond)
+      : 0;
+    const remainingTime = remainingSeconds > 0 
+      ? `${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`
+      : 'Hesaplanıyor...';
+
     return (
       <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="bg-gradient-to-r from-cyber-green/10 to-dark-surface border border-cyber-green/30 rounded-xl p-5 min-w-96 shadow-2xl shadow-cyber-green/20 backdrop-blur-sm">
@@ -181,19 +208,35 @@ function UpdateNotification() {
             </div>
           </div>
 
-          {/* Progress Info */}
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          {/* Progress Info - 4 Columns */}
+          <div className="grid grid-cols-4 gap-2 text-xs mb-3">
             <div className="bg-dark-hover/50 rounded-lg p-2 text-center">
               <div className="text-cyber-green font-bold">{Math.round(downloadProgress.percent)}%</div>
               <div className="text-text-muted text-xs">İlerleme</div>
             </div>
             <div className="bg-dark-hover/50 rounded-lg p-2 text-center">
-              <div className="text-cyber-green font-bold">{Math.round(downloadProgress.bytesPerSecond / 1024)} KB/s</div>
+              <div className="text-cyber-green font-bold">{speedMBps} MB/s</div>
               <div className="text-text-muted text-xs">Hız</div>
+            </div>
+            <div className="bg-dark-hover/50 rounded-lg p-2 text-center">
+              <div className="text-cyber-green font-bold">{remainingTime}</div>
+              <div className="text-text-muted text-xs">Kalan</div>
             </div>
             <div className="bg-dark-hover/50 rounded-lg p-2 text-center">
               <div className="text-cyber-green font-bold">{Math.round(downloadProgress.transferred / 1024 / 1024)}/{Math.round(downloadProgress.total / 1024 / 1024)} MB</div>
               <div className="text-text-muted text-xs">Boyut</div>
+            </div>
+          </div>
+
+          {/* Detailed Info */}
+          <div className="text-xs text-text-muted bg-dark-hover/30 rounded-lg p-2">
+            <div className="flex justify-between">
+              <span>İndirilen:</span>
+              <span className="text-cyber-green">{(downloadProgress.transferred / 1024 / 1024).toFixed(1)} MB</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Toplam:</span>
+              <span className="text-cyber-green">{(downloadProgress.total / 1024 / 1024).toFixed(1)} MB</span>
             </div>
           </div>
         </div>
@@ -234,7 +277,7 @@ function UpdateNotification() {
 
           <div className="flex gap-3">
             <button
-              onClick={checkForUpdates}
+              onClick={downloadUpdate}
               className="flex-1 px-4 py-2.5 bg-gradient-to-r from-vivid-blue/20 to-vivid-blue/10 hover:from-vivid-blue/30 hover:to-vivid-blue/20 border border-vivid-blue/50 rounded-lg text-vivid-blue text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-vivid-blue/20"
             >
               İndir

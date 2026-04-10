@@ -10,11 +10,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SetupWizard from './components/Setup/SetupWizard';
 import Dashboard from './components/Dashboard/Dashboard';
 import ShopManager from './components/ShopManager/ShopManagerSimple';
-import ProtoEditor from './components/ProtoEditor/ProtoEditor';
-import QuestGenerator from './components/QuestGenerator/QuestGenerator';
-import MapTool from './components/MapTool/MapTool';
-import UITools from './components/UITools/UITools';
-import LogAnalyzer from './components/LogAnalyzer/LogAnalyzer';
+import ServerManager from './components/ServerManager/ServerManager';
+import PlayerList from './components/Players/PlayerList';
+import QuestEditor from './components/Quests/QuestEditor';
+import QueryBuilder from './components/QueryBuilder/QueryBuilder';
 
 import { AppProvider } from './context/AppContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -33,27 +32,9 @@ function App() {
     playerCount: 0,
     uptime: '00:00:00'
   });
-  const [hotReloadKey, setHotReloadKey] = useState(0);
 
   useEffect(() => {
     checkSetupStatus();
-  }, []);
-
-  // Hot reload listener
-  useEffect(() => {
-    if (!ipcRenderer) return;
-
-    const handleFileChanged = (event, data) => {
-      console.log('[HOT RELOAD] Dosya değişti, component yeniden render ediliyor:', data.path);
-      // Component'i yeniden render et
-      setHotReloadKey(prev => prev + 1);
-    };
-
-    ipcRenderer.on('file-changed', handleFileChanged);
-
-    return () => {
-      ipcRenderer.removeListener('file-changed', handleFileChanged);
-    };
   }, []);
 
   const checkSetupStatus = async () => {
@@ -90,33 +71,22 @@ function App() {
     setAppReady(true);
   };
 
-  // Gerçek server status - her 15 saniyede güncelle
   const fetchServerStatus = useCallback(async () => {
     if (!appConfig?.database) return;
 
     let dbOnline = false;
     let playerCount = 0;
-    let ftpOnline = false;
 
     if (ipcRenderer) {
-      // DB + player count
       try {
         const stats = await ipcRenderer.invoke('get-server-stats', appConfig.database);
         dbOnline = stats.dbOnline === true;
         playerCount = stats.playerCount || 0;
       } catch {}
-
-      // FTP ping (eğer config varsa)
-      if (appConfig?.ftp?.host) {
-        try {
-          const ftp = await ipcRenderer.invoke('ping-server', appConfig.ftp.host, appConfig.ftp.port || 21);
-          ftpOnline = ftp.success;
-        } catch {}
-      }
     }
 
     setServerStatus({
-      game: (dbOnline || ftpOnline) ? 'online' : 'offline',
+      game: dbOnline ? 'online' : 'offline',
       db: dbOnline ? 'online' : 'offline',
       playerCount,
       uptime: '00:00:00'
@@ -145,8 +115,7 @@ function App() {
       <ErrorBoundary>
         <AppProvider>
           <DndProvider backend={HTML5Backend}>
-            <Router key={hotReloadKey}>
-              {/* Setup zorunlu - tamamlanmadan uygulama görünmez */}
+            <Router>
               {showSetup && (
                 <SetupWizard onComplete={handleSetupComplete} />
               )}
@@ -169,11 +138,10 @@ function App() {
                           <Routes>
                             <Route path="/" element={<Dashboard config={appConfig} />} />
                             <Route path="/shop-manager" element={<ShopManager config={appConfig} />} />
-                            <Route path="/proto-editor" element={<ProtoEditor config={appConfig} />} />
-                            <Route path="/quest-generator" element={<QuestGenerator config={appConfig} />} />
-                            <Route path="/map-tool" element={<MapTool config={appConfig} />} />
-                            <Route path="/ui-tools" element={<UITools config={appConfig} />} />
-                            <Route path="/log-analyzer" element={<LogAnalyzer config={appConfig} />} />
+                            <Route path="/server-manager" element={<ServerManager config={appConfig} />} />
+                            <Route path="/players" element={<PlayerList config={appConfig} />} />
+                            <Route path="/quests" element={<QuestEditor config={appConfig} />} />
+                            <Route path="/query-builder" element={<QueryBuilder config={appConfig} />} />
                           </Routes>
                         </ErrorBoundary>
                       </div>

@@ -4,10 +4,10 @@ const chokidar = require('chokidar');
 
 const isDev = process.env.NODE_ENV === 'development';
 
-let autoUpdater = null;
-try {
-  if (!isDev) autoUpdater = require('electron-updater').autoUpdater;
-} catch (e) { console.log('Auto-updater not available:', e.message); }
+// Manual update system (electron-updater yerine)
+const https = require('https');
+const fs = require('fs');
+const { createWriteStream } = require('fs');
 
 let mainWindow;
 let fileWatcher = null;
@@ -57,11 +57,15 @@ function startFileWatcher() {
 app.whenReady().then(() => {
   createWindow();
   
-  // Production'da otomatik güncelleme kontrol et
-  if (!isDev && autoUpdater) {
-    setupAutoUpdater();
-    autoUpdater.checkForUpdatesAndNotify();
-  }
+  // Otomatik güncelleme kontrolü (dev ve prod)
+  checkForUpdatesManual();
+  
+  // Her 1 saatte bir kontrol et
+  setInterval(() => {
+    if (mainWindow) {
+      checkForUpdatesManual();
+    }
+  }, 60 * 60 * 1000);
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
@@ -503,104 +507,309 @@ ipcMain.handle('write-npclist', async (e, serverPath, npcs) => {
     return { success: true };
   } catch (err) { return { success: false, error: err.message }; }
 });
+// ─── Server Management ─────────────────────────────────────────────────────────
+ipcMain.handle('start-server', async (e, config) => {
+  // Placeholder - gerçek sunucu başlatma işlemi
+  return { success: true, message: 'Sunucu başlatıldı' };
+});
+
+ipcMain.handle('stop-server', async (e, config) => {
+  // Placeholder - gerçek sunucu durdurma işlemi
+  return { success: true, message: 'Sunucu durduruldu' };
+});
+
+// ─── Player Management ──────────────────────────────────────────────────────────
+ipcMain.handle('get-players', async (e, config) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    const [rows] = await conn.execute(`
+      SELECT id, name, level, exp, gold, job, map_index, last_login
+      FROM player
+      ORDER BY level DESC
+      LIMIT 1000
+    `);
+    await conn.end();
+    return { success: true, data: rows };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('delete-player', async (e, config, playerId) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute('DELETE FROM player WHERE id = ?', [playerId]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('ban-player', async (e, config, playerId) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute('UPDATE player SET status = 1 WHERE id = ?', [playerId]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+// ─── Quest Management ──────────────────────────────────────────────────────────
+ipcMain.handle('get-quests', async (e, config) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    const [rows] = await conn.execute(`
+      SELECT id, name, description, level_min, level_max, reward_exp, reward_gold, reward_item
+      FROM quest
+      ORDER BY id
+      LIMIT 500
+    `).catch(() => [[]]);
+    await conn.end();
+    return { success: true, data: rows };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('create-quest', async (e, config, questData) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute(`
+      INSERT INTO quest (name, description, level_min, level_max, reward_exp, reward_gold, reward_item)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      questData.name,
+      questData.description,
+      questData.level_min,
+      questData.level_max,
+      questData.reward_exp,
+      questData.reward_gold,
+      questData.reward_item
+    ]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('update-quest', async (e, config, questData) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute(`
+      UPDATE quest
+      SET name = ?, description = ?, level_min = ?, level_max = ?, reward_exp = ?, reward_gold = ?, reward_item = ?
+      WHERE id = ?
+    `, [
+      questData.name,
+      questData.description,
+      questData.level_min,
+      questData.level_max,
+      questData.reward_exp,
+      questData.reward_gold,
+      questData.reward_item,
+      questData.id
+    ]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
+
+ipcMain.handle('delete-quest', async (e, config, questId) => {
+  if (!config?.host) return { success: false, error: 'Config yok' };
+  try {
+    const conn = await createConn(config, true);
+    await conn.execute('DELETE FROM quest WHERE id = ?', [questId]);
+    await conn.end();
+    return { success: true };
+  } catch (err) { return { success: false, error: err.message }; }
+});
 
 // ─── Updates ───────────────────────────────────────────────────────────────────
-function setupAutoUpdater() {
-  if (!autoUpdater) return;
+const GITHUB_REPO = 'https://github.com/whiternegrohd-commits/metin2-dev-toolkit/releases/download';
+const LATEST_YML_URL = `${GITHUB_REPO}/latest/latest.yml`;
 
-  // GitHub'dan güncelleme yap
-  autoUpdater.setFeedURL({
-    provider: 'github',
-    owner: 'whiternegrohd-commits',
-    repo: 'metin2-dev-toolkit',
-    releaseType: 'release'
-  });
+// ─── Manual Update System ──────────────────────────────────────────────────────
 
-  console.log('[UPDATE] GitHub feed URL ayarlandı');
-
-  autoUpdater.on('update-available', (info) => {
-    console.log('[UPDATE] Yeni versiyon mevcut:', info.version);
-    if (mainWindow) {
-      mainWindow.webContents.send('update-available', {
-        version: info.version,
-        releaseDate: info.releaseDate,
-        releaseNotes: info.releaseNotes
+function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const file = createWriteStream(destPath);
+    https.get(url, (response) => {
+      if (response.statusCode === 302 || response.statusCode === 301) {
+        downloadFile(response.headers.location, destPath).then(resolve).catch(reject);
+        return;
+      }
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close();
+        resolve();
       });
-    }
+    }).on('error', (err) => {
+      fs.unlink(destPath, () => {});
+      reject(err);
+    });
   });
+}
 
-  autoUpdater.on('update-not-available', () => {
-    console.log('[UPDATE] Güncel versiyon kullanılıyor');
-    if (mainWindow) {
-      mainWindow.webContents.send('update-not-available');
+function parseYaml(content) {
+  const lines = content.split('\n');
+  const result = {};
+  let currentKey = null;
+  
+  for (const line of lines) {
+    if (!line.trim() || line.startsWith('#')) continue;
+    
+    if (line.includes(':')) {
+      const [key, ...valueParts] = line.split(':');
+      const value = valueParts.join(':').trim();
+      
+      if (key.trim() === 'version') {
+        result.version = value.replace(/'/g, '').replace(/"/g, '');
+      } else if (key.trim() === 'path') {
+        result.path = value.replace(/'/g, '').replace(/"/g, '');
+      } else if (key.trim() === 'releaseDate') {
+        result.releaseDate = value.replace(/'/g, '').replace(/"/g, '');
+      }
     }
-  });
+  }
+  
+  return result;
+}
 
-  autoUpdater.on('download-progress', (progress) => {
-    console.log(`[UPDATE] İndiriliyor: ${Math.round(progress.percent)}%`);
-    if (mainWindow) {
-      mainWindow.webContents.send('download-progress', {
-        percent: progress.percent,
-        bytesPerSecond: progress.bytesPerSecond,
-        transferred: progress.transferred,
-        total: progress.total
-      });
+async function checkForUpdatesManual() {
+  try {
+    console.log('[UPDATE] Manuel güncelleme kontrolü başlatıldı...');
+    
+    // Lokal latest.yml'i oku (dist klasöründen)
+    const localYmlPath = path.join(__dirname, '../dist/latest.yml');
+    
+    if (!fs.existsSync(localYmlPath)) {
+      console.log('[UPDATE] latest.yml bulunamadı:', localYmlPath);
+      return;
     }
-  });
-
-  autoUpdater.on('update-downloaded', () => {
-    console.log('[UPDATE] İndirme tamamlandı, yeniden başlatılıyor...');
-    if (mainWindow) {
-      mainWindow.webContents.send('update-downloaded');
+    
+    const ymlContent = fs.readFileSync(localYmlPath, 'utf8');
+    const remoteInfo = parseYaml(ymlContent);
+    const currentVersion = app.getVersion();
+    
+    console.log(`[UPDATE] Mevcut versiyon: ${currentVersion}, Uzak versiyon: ${remoteInfo.version}`);
+    
+    if (remoteInfo.version !== currentVersion) {
+      console.log('[UPDATE] Yeni versiyon mevcut!');
+      if (mainWindow) {
+        mainWindow.webContents.send('update-available', {
+          version: remoteInfo.version,
+          releaseDate: remoteInfo.releaseDate,
+          path: remoteInfo.path
+        });
+      }
+    } else {
+      console.log('[UPDATE] Güncel versiyon kullanılıyor');
+      if (mainWindow) {
+        mainWindow.webContents.send('update-not-available');
+      }
     }
-    // 2 saniye sonra yeniden başlat
-    setTimeout(() => {
-      autoUpdater.quitAndInstall();
-    }, 2000);
-  });
-
-  autoUpdater.on('error', (err) => {
-    console.error('[UPDATE] Hata:', err);
+  } catch (err) {
+    console.error('[UPDATE] Kontrol hatası:', err.message);
     if (mainWindow) {
       mainWindow.webContents.send('update-error', { error: err.message });
     }
-  });
+  }
 }
 
 ipcMain.handle('check-for-updates', async () => {
   console.log('[UPDATE] Güncelleme kontrol başlatıldı...');
-  if (autoUpdater) {
-    try {
-      console.log('[UPDATE] autoUpdater.checkForUpdates() çağrılıyor...');
-      const result = await autoUpdater.checkForUpdates();
-      console.log('[UPDATE] Kontrol sonucu:', result);
-      
-      // Event'leri manuel olarak tetikle (test için)
-      if (result && result.updateInfo) {
-        console.log('[UPDATE] Update info bulundu, event tetikleniyor');
-        if (mainWindow) {
-          mainWindow.webContents.send('update-available', {
-            version: result.updateInfo.version,
-            releaseDate: result.updateInfo.releaseDate,
-            releaseNotes: result.updateInfo.releaseNotes
-          });
-        }
-      }
-      
-      return { success: true, result };
-    } catch (err) {
-      console.error('[UPDATE] Kontrol hatası:', err);
-      return { success: false, error: err.message };
+  try {
+    const localYmlPath = path.join(__dirname, '../dist/latest.yml');
+    
+    if (!fs.existsSync(localYmlPath)) {
+      return { success: false, error: 'latest.yml bulunamadı' };
     }
+    
+    const ymlContent = fs.readFileSync(localYmlPath, 'utf8');
+    const remoteInfo = parseYaml(ymlContent);
+    const currentVersion = app.getVersion();
+    
+    return {
+      success: true,
+      currentVersion,
+      remoteVersion: remoteInfo.version,
+      hasUpdate: remoteInfo.version !== currentVersion,
+      updateInfo: remoteInfo
+    };
+  } catch (err) {
+    console.error('[UPDATE] Kontrol hatası:', err);
+    return { success: false, error: err.message };
   }
-  console.log('[UPDATE] autoUpdater mevcut değil');
-  return { success: false, message: 'autoUpdater yok' };
 });
 
-ipcMain.handle('install-update', () => {
-  if (!isDev && autoUpdater) {
-    autoUpdater.quitAndInstall();
-    return { success: true };
+ipcMain.handle('download-update', async (e, remoteInfo) => {
+  try {
+    console.log('[UPDATE] İndirme başlatıldı:', remoteInfo.path);
+    
+    const downloadUrl = `${GITHUB_REPO}/${remoteInfo.version}/${remoteInfo.path}`;
+    const downloadPath = path.join(app.getPath('downloads'), remoteInfo.path);
+    
+    let lastProgress = 0;
+    
+    await new Promise((resolve, reject) => {
+      const file = createWriteStream(downloadPath);
+      https.get(downloadUrl, (response) => {
+        const totalSize = parseInt(response.headers['content-length'], 10);
+        let downloadedSize = 0;
+        
+        response.on('data', (chunk) => {
+          downloadedSize += chunk.length;
+          const percent = Math.round((downloadedSize / totalSize) * 100);
+          
+          if (percent - lastProgress >= 5) {
+            lastProgress = percent;
+            console.log(`[UPDATE] İndiriliyor: ${percent}%`);
+            if (mainWindow) {
+              mainWindow.webContents.send('download-progress', {
+                percent,
+                transferred: downloadedSize,
+                total: totalSize
+              });
+            }
+          }
+        });
+        
+        response.pipe(file);
+        file.on('finish', () => {
+          file.close();
+          resolve();
+        });
+      }).on('error', reject);
+    });
+    
+    console.log('[UPDATE] İndirme tamamlandı:', downloadPath);
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', { path: downloadPath });
+    }
+    
+    return { success: true, path: downloadPath };
+  } catch (err) {
+    console.error('[UPDATE] İndirme hatası:', err);
+    return { success: false, error: err.message };
   }
-  return { success: false };
+});
+
+ipcMain.handle('install-update', async (e, exePath) => {
+  try {
+    console.log('[UPDATE] Kurulum başlatıldı:', exePath);
+    
+    // EXE'yi çalıştır
+    const { spawn } = require('child_process');
+    spawn(exePath, [], { detached: true });
+    
+    // Uygulamayı kapat
+    setTimeout(() => {
+      app.quit();
+    }, 1000);
+    
+    return { success: true };
+  } catch (err) {
+    console.error('[UPDATE] Kurulum hatası:', err);
+    return { success: false, error: err.message };
+  }
 });

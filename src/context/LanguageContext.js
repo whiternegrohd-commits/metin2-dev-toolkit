@@ -63,6 +63,10 @@ const translations = {
     // Sidebar
     dashboard: 'Dashboard',
     shop_manager: 'Shop Manager',
+    server_manager: 'Sunucu Yönetimi',
+    players: 'Oyuncular',
+    quests: 'Questler',
+    query_builder: 'Query Builder',
     proto_editor: 'Proto Editor',
     quest_generator: 'Quest Generator',
     map_tool: 'Map Tool',
@@ -258,6 +262,10 @@ const translations = {
     // Sidebar
     dashboard: 'Dashboard',
     shop_manager: 'Shop Manager',
+    server_manager: 'Server Management',
+    players: 'Players',
+    quests: 'Quests',
+    query_builder: 'Query Builder',
     proto_editor: 'Proto Editor',
     quest_generator: 'Quest Generator',
     map_tool: 'Map Tool',
