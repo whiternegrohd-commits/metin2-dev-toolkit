@@ -696,7 +696,7 @@ ipcMain.handle('delete-quest', async (e, config, questId) => {
 
 // ─── Updates ───────────────────────────────────────────────────────────────────
 const GITHUB_REPO = 'https://github.com/whiternegrohd-commits/metin2-dev-toolkit/releases/download';
-const LATEST_YML_URL = `${GITHUB_REPO}/latest/latest.yml`;
+const LATEST_YML_URL = 'https://raw.githubusercontent.com/whiternegrohd-commits/metin2-dev-toolkit/main/dist/latest.yml';
 
 // ─── Manual Update System ──────────────────────────────────────────────────────
 
@@ -723,25 +723,26 @@ function downloadFile(url, destPath) {
 function parseYaml(content) {
   const lines = content.split('\n');
   const result = {};
-  let currentKey = null;
   
   for (const line of lines) {
     if (!line.trim() || line.startsWith('#')) continue;
     
     if (line.includes(':')) {
-      const [key, ...valueParts] = line.split(':');
-      const value = valueParts.join(':').trim();
+      const colonIndex = line.indexOf(':');
+      const key = line.substring(0, colonIndex).trim();
+      const value = line.substring(colonIndex + 1).trim();
       
-      if (key.trim() === 'version') {
-        result.version = value.replace(/'/g, '').replace(/"/g, '');
-      } else if (key.trim() === 'path') {
-        result.path = value.replace(/'/g, '').replace(/"/g, '');
-      } else if (key.trim() === 'releaseDate') {
-        result.releaseDate = value.replace(/'/g, '').replace(/"/g, '');
+      if (key === 'version') {
+        result.version = value.replace(/'/g, '').replace(/"/g, '').trim();
+      } else if (key === 'path') {
+        result.path = value.replace(/'/g, '').replace(/"/g, '').trim();
+      } else if (key === 'releaseDate') {
+        result.releaseDate = value.replace(/'/g, '').replace(/"/g, '').trim();
       }
     }
   }
   
+  console.log('[UPDATE] Parsed YAML:', result);
   return result;
 }
 
@@ -749,35 +750,44 @@ async function checkForUpdatesManual() {
   try {
     console.log('[UPDATE] Manuel güncelleme kontrolü başlatıldı...');
     
-    // Lokal latest.yml'i oku (dist klasöründen)
-    const localYmlPath = path.join(__dirname, '../dist/latest.yml');
-    
-    if (!fs.existsSync(localYmlPath)) {
-      console.log('[UPDATE] latest.yml bulunamadı:', localYmlPath);
-      return;
-    }
-    
-    const ymlContent = fs.readFileSync(localYmlPath, 'utf8');
-    const remoteInfo = parseYaml(ymlContent);
-    const currentVersion = app.getVersion();
-    
-    console.log(`[UPDATE] Mevcut versiyon: ${currentVersion}, Uzak versiyon: ${remoteInfo.version}`);
-    
-    if (remoteInfo.version !== currentVersion) {
-      console.log('[UPDATE] Yeni versiyon mevcut!');
-      if (mainWindow) {
-        mainWindow.webContents.send('update-available', {
-          version: remoteInfo.version,
-          releaseDate: remoteInfo.releaseDate,
-          path: remoteInfo.path
+    // GitHub'dan latest.yml'i indir
+    return new Promise((resolve) => {
+      https.get(LATEST_YML_URL, (response) => {
+        let data = '';
+        response.on('data', chunk => data += chunk);
+        response.on('end', () => {
+          try {
+            const remoteInfo = parseYaml(data);
+            const currentVersion = app.getVersion();
+            
+            console.log(`[UPDATE] Mevcut versiyon: ${currentVersion}, Uzak versiyon: ${remoteInfo.version}`);
+            
+            if (remoteInfo.version !== currentVersion) {
+              console.log('[UPDATE] Yeni versiyon mevcut!');
+              if (mainWindow) {
+                mainWindow.webContents.send('update-available', {
+                  version: remoteInfo.version,
+                  releaseDate: remoteInfo.releaseDate,
+                  path: remoteInfo.path
+                });
+              }
+            } else {
+              console.log('[UPDATE] Güncel versiyon kullanılıyor');
+              if (mainWindow) {
+                mainWindow.webContents.send('update-not-available');
+              }
+            }
+            resolve();
+          } catch (err) {
+            console.error('[UPDATE] Parse hatası:', err);
+            resolve();
+          }
         });
-      }
-    } else {
-      console.log('[UPDATE] Güncel versiyon kullanılıyor');
-      if (mainWindow) {
-        mainWindow.webContents.send('update-not-available');
-      }
-    }
+      }).on('error', (err) => {
+        console.error('[UPDATE] İndirme hatası:', err);
+        resolve();
+      });
+    });
   } catch (err) {
     console.error('[UPDATE] Kontrol hatası:', err.message);
     if (mainWindow) {

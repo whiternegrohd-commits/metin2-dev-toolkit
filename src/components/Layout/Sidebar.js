@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, ShoppingCart, ChevronLeft, ChevronRight, Server, Users, BookOpen, Database, Map, Wand2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import ClientVersion from '../ClientVersion/ClientVersion';
 
 function Sidebar({ collapsed, onToggle }) {
   const { t } = useLanguage();
@@ -58,6 +59,13 @@ function Sidebar({ collapsed, onToggle }) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Client Version Panel */}
+      {!collapsed && (
+        <div className="p-2 border-t border-dark-border">
+          <ClientVersion />
+        </div>
+      )}
     </div>
   );
 }
